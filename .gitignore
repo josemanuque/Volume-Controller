@@ -1,0 +1,8 @@
+# Ignore .vs
+**/.vs/
+
+# Ignorar el directorio Debug
+**/Debug/
+
+# Ignorar el directorio Driver/Driver/x64
+Driver/Driver/x64/
