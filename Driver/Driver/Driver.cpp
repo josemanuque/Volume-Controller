@@ -61,9 +61,28 @@ void SetVolume(float volume) {
     CoUninitialize();
 }
 
+
+void SendVolumeOverSerial(HANDLE hSerial, float volume) {
+    // Convertir el valor de volumen a un entero que se pueda enviar
+    int volumeValue = static_cast<int>(volume * 100);
+
+    // Crear una cadena con el valor de volumen
+    std::string volumeStr = std::to_string(volumeValue);
+
+    // Escribir la cadena en el puerto serie
+    DWORD bytesWritten;
+    if (WriteFile(hSerial, volumeStr.c_str(), volumeStr.length(), &bytesWritten, NULL)) {
+        std::cout << "Volumen enviado exitosamente: " << volume << std::endl;
+    }
+    else {
+        std::cerr << "Error al enviar el volumen por el puerto serie. Código de error: " << GetLastError() << std::endl;
+    }
+}
+
+
 int main() {
     // Abrir el puerto serie COM1
-    HANDLE hSerial = CreateFile(L"COM4", GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    HANDLE hSerial = CreateFile(L"COM4", GENERIC_WRITE | GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
     if (hSerial == INVALID_HANDLE_VALUE) {
         std::cerr << "Error al abrir el puerto serie. Código de error: " << GetLastError() << std::endl;
@@ -93,37 +112,39 @@ int main() {
     // Leer e imprimir datos desde el puerto serie
     char buffer[256];
     DWORD bytesRead;
+    SendVolumeOverSerial(hSerial, 0.5);
+    //while (true) {
+    //    
+    //    if (ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytesRead, 0)) {
+    //        if (bytesRead > 0) {
+    //            // Imprimir los datos leídos
+    //            //std::cout.write(buffer, bytesRead);
+    //            buffer[bytesRead] = '\0'; // Asegúrate de que el buffer esté terminado con un carácter nulo
+    //            char* newlinePos = std::remove(buffer, buffer + bytesRead, '\n');
+    //            *newlinePos = '\0'; // Terminar la cadena después de eliminar el carácter de nueva línea
 
-    while (true) {
-        if (ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytesRead, 0)) {
-            if (bytesRead > 0) {
-                // Imprimir los datos leídos
-                //std::cout.write(buffer, bytesRead);
-                buffer[bytesRead] = '\0'; // Asegúrate de que el buffer esté terminado con un carácter nulo
-                char* newlinePos = std::remove(buffer, buffer + bytesRead, '\n');
-                *newlinePos = '\0'; // Terminar la cadena después de eliminar el carácter de nueva línea
-
-                std::cout << "Datos recibidos: " << buffer << std::endl;
-                
-                try {
-                    int receivedValue = std::stoi(std::string(buffer, bytesRead));
-                    float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
-                    std::cout << "normalizedValue: " << normalizedValue << std::endl;
-                    SetVolume(normalizedValue);
-                }
-                catch (const std::exception& e) {
-                    //std::cerr << "Excepción al procesar los datos: " << e.what() << std::endl;
-                }
-            }
-        }
-        else {
-            DWORD error = GetLastError();
-            if (error != ERROR_IO_PENDING) {
-                std::cerr << "Error al leer desde el puerto serie. Código de error: " << error << std::endl;
-                break;
-            }
-        }
-    }
+    //            std::cout << "Datos recibidos: " << buffer << std::endl;
+    //            
+    //            try {
+    //                int receivedValue = std::stoi(std::string(buffer, bytesRead));
+    //                float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
+    //                std::cout << "normalizedValue: " << normalizedValue << std::endl;
+    //                SetVolume(normalizedValue);
+    //                
+    //            }
+    //            catch (const std::exception& e) {
+    //                //std::cerr << "Excepción al procesar los datos: " << e.what() << std::endl;
+    //            }
+    //        }
+    //    }
+    //    else {
+    //        DWORD error = GetLastError();
+    //        if (error != ERROR_IO_PENDING) {
+    //            std::cerr << "Error al leer desde el puerto serie. Código de error: " << error << std::endl;
+    //            break;
+    //        }
+    //    }
+    //}
 
     // Cerrar el puerto serie
     CloseHandle(hSerial);
