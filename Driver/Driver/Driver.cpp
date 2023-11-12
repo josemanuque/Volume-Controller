@@ -67,7 +67,7 @@ void SendVolumeOverSerial(HANDLE hSerial, float volume) {
     int volumeValue = static_cast<int>(volume * 100);
 
     // Crear una cadena con el valor de volumen
-    std::string volumeStr = std::to_string(volumeValue);
+    std::string volumeStr = std::to_string(volumeValue) + '\n';
 
     // Escribir la cadena en el puerto serie
     DWORD bytesWritten;
@@ -108,43 +108,58 @@ int main() {
         return 1;
     }
 
-    
+
     // Leer e imprimir datos desde el puerto serie
     char buffer[256];
     DWORD bytesRead;
-    SendVolumeOverSerial(hSerial, 0.5);
-    //while (true) {
-    //    
-    //    if (ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytesRead, 0)) {
-    //        if (bytesRead > 0) {
-    //            // Imprimir los datos leídos
-    //            //std::cout.write(buffer, bytesRead);
-    //            buffer[bytesRead] = '\0'; // Asegúrate de que el buffer esté terminado con un carácter nulo
-    //            char* newlinePos = std::remove(buffer, buffer + bytesRead, '\n');
-    //            *newlinePos = '\0'; // Terminar la cadena después de eliminar el carácter de nueva línea
 
-    //            std::cout << "Datos recibidos: " << buffer << std::endl;
-    //            
-    //            try {
-    //                int receivedValue = std::stoi(std::string(buffer, bytesRead));
-    //                float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
-    //                std::cout << "normalizedValue: " << normalizedValue << std::endl;
-    //                SetVolume(normalizedValue);
-    //                
-    //            }
-    //            catch (const std::exception& e) {
-    //                //std::cerr << "Excepción al procesar los datos: " << e.what() << std::endl;
-    //            }
-    //        }
-    //    }
-    //    else {
-    //        DWORD error = GetLastError();
-    //        if (error != ERROR_IO_PENDING) {
-    //            std::cerr << "Error al leer desde el puerto serie. Código de error: " << error << std::endl;
-    //            break;
-    //        }
-    //    }
-    //}
+    while (true) {
+        if (ReadFile(hSerial, buffer, sizeof(buffer), &bytesRead, 0)) {
+            if (bytesRead > 0) {
+                //// Imprimir los datos leídos
+                buffer[bytesRead] = '\0';
+
+                // Buscar el carácter de nueva línea
+                char* newlinePos = strchr(buffer, '\n');
+
+                if (newlinePos != nullptr) {
+                    // Encontrar la posición del carácter de nueva línea
+                    size_t newlineIndex = newlinePos - buffer;
+
+                    // Copiar la parte relevante de la cadena a un nuevo buffer
+                    char numberBuffer[32]; // Tamaño suficiente para almacenar un número
+                    strncpy_s(numberBuffer, sizeof(numberBuffer), buffer, newlineIndex);
+
+                    // Convertir la cadena a un entero
+                    try {
+                        int receivedValue = std::stoi(numberBuffer);
+                        std::cout << "Número recibido: " << receivedValue << std::endl;
+                        float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
+                        SetVolume(normalizedValue);
+                        SendVolumeOverSerial(hSerial, normalizedValue);
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "Excepción al convertir a entero: " << e.what() << std::endl;
+                    }
+
+                    // Mover el resto de los datos al principio del buffer
+                    size_t remainingBytes = bytesRead - (newlineIndex + 1);
+                    memmove(buffer, buffer + newlineIndex + 1, remainingBytes);
+                    bytesRead = remainingBytes;
+                }
+                else {
+                    std::cout << "Error" << std::endl;
+                }
+            }
+        }
+        else {
+            DWORD error = GetLastError();
+            if (error != ERROR_IO_PENDING) {
+                std::cerr << "Error al leer desde el puerto serie. Código de error: " << error << std::endl;
+                break;
+            }
+        }
+    }
 
     // Cerrar el puerto serie
     CloseHandle(hSerial);
