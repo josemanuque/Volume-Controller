@@ -13,10 +13,54 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\impl">
+      <UniqueIdentifier>{04c89fd6-febd-413e-a355-f6214c700c98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\impl\list_ports">
+      <UniqueIdentifier>{e34544dd-5b1d-4a8d-8397-55455bdf87b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\serial">
+      <UniqueIdentifier>{a00d8d13-bdc3-44c3-bf47-c4ef22b5c33b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\serial\impl">
+      <UniqueIdentifier>{f97e8eb7-3823-4bcb-ae1e-bfb70b63f217}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="win.cc">
+      <Filter>Source Files\impl</Filter>
+    </ClCompile>
+    <ClCompile Include="list_ports_win.cc">
+      <Filter>Source Files\impl\list_ports</Filter>
+    </ClCompile>
+    <ClCompile Include="serial.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="list_ports_osx.cc">
+      <Filter>Source Files\impl\list_ports</Filter>
+    </ClCompile>
+    <ClCompile Include="list_ports_linux.cc">
+      <Filter>Source Files\impl\list_ports</Filter>
+    </ClCompile>
+    <ClCompile Include="unix.cc">
+      <Filter>Source Files\impl</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="win.h">
+      <Filter>Header Files\serial\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="serial.h">
+      <Filter>Header Files\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="v8stdint.h">
+      <Filter>Header Files\serial</Filter>
+    </ClInclude>
+    <ClInclude Include="unix.h">
+      <Filter>Header Files\serial\impl</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

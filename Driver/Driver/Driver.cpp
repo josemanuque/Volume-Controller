@@ -1,8 +1,52 @@
+/***
+ * This example expects the serial port has a loopback on it.
+ *
+ * Alternatively, you could use an Arduino:
+ *
+ * <pre>
+ *  void setup() {
+ *    Serial.begin(<insert your baudrate here>);
+ *  }
+ *
+ *  void loop() {
+ *    if (Serial.available()) {
+ *      Serial.write(Serial.read());
+ *    }
+ *  }
+ * </pre>
+ */
+
+#include <string>
+#include <iostream>
+#include <cstdio>
 #include <windows.h>
 #include <mmdeviceapi.h>
 #include <endpointvolume.h>
-#include <iostream>
-#include <string>
+
+ // OS Specific sleep
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include "serial.h"
+
+using std::string;
+using std::exception;
+using std::cout;
+using std::cin;
+using std::cerr;
+using std::endl;
+using std::vector;
+
+void my_sleep(unsigned long milliseconds) {
+#ifdef _WIN32
+    Sleep(milliseconds); // 100 ms
+#else
+    usleep(milliseconds * 1000); // 100 ms
+#endif
+}
 
 void SetVolume(float volume) {
     CoInitialize(NULL);
@@ -62,107 +106,68 @@ void SetVolume(float volume) {
 }
 
 
-void SendVolumeOverSerial(HANDLE hSerial, float volume) {
-    // Convertir el valor de volumen a un entero que se pueda enviar
-    int volumeValue = static_cast<int>(volume * 100);
 
-    // Crear una cadena con el valor de volumen
-    std::string volumeStr = std::to_string(volumeValue) + '\n';
 
-    // Escribir la cadena en el puerto serie
-    DWORD bytesWritten;
-    if (WriteFile(hSerial, volumeStr.c_str(), volumeStr.length(), &bytesWritten, NULL)) {
-        std::cout << "Volumen enviado exitosamente: " << volume << std::endl;
-    }
-    else {
-        std::cerr << "Error al enviar el volumen por el puerto serie. Código de error: " << GetLastError() << std::endl;
-    }
+void enumerate_ports()
+{
+	vector<serial::PortInfo> devices_found = serial::list_ports();
+
+	vector<serial::PortInfo>::iterator iter = devices_found.begin();
+
+	while (iter != devices_found.end())
+	{
+		serial::PortInfo device = *iter++;
+
+		printf("(%s, %s, %s)\n", device.port.c_str(), device.description.c_str(),
+			device.hardware_id.c_str());
+	}
 }
 
 
 int main() {
-    // Abrir el puerto serie COM1
-    HANDLE hSerial = CreateFile(L"COM4", GENERIC_WRITE | GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    serial::Serial mySerial;
+    string port = "";
+    cout << "Enter the COM Port (-1 to search ports): ";
+    cin >> port;
 
-    if (hSerial == INVALID_HANDLE_VALUE) {
-        std::cerr << "Error al abrir el puerto serie. Código de error: " << GetLastError() << std::endl;
-        return 1;
+    if (port == "-1") {
+        enumerate_ports();
+        cout << "Enter the COM Port: ";
+        cin >> port;
     }
-
-    // Configurar la comunicación serie
-    DCB dcbSerialParams = { 0 };
-    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-
-    if (!GetCommState(hSerial, &dcbSerialParams)) {
-        std::cerr << "Error al obtener la configuración del puerto serie. Código de error: " << GetLastError() << std::endl;
-        CloseHandle(hSerial);
-        return 1;
-    }
-
-    // Configurar la velocidad de transmisión (en baudios)
-    dcbSerialParams.BaudRate = CBR_9600;
-
-    if (!SetCommState(hSerial, &dcbSerialParams)) {
-        std::cerr << "Error al configurar la velocidad del puerto serie. Código de error: " << GetLastError() << std::endl;
-        CloseHandle(hSerial);
-        return 1;
-    }
-
-
-    // Leer e imprimir datos desde el puerto serie
-    char buffer[256];
-    DWORD bytesRead;
-
-    while (true) {
-        if (ReadFile(hSerial, buffer, sizeof(buffer), &bytesRead, 0)) {
-            if (bytesRead > 0) {
-                //// Imprimir los datos leídos
-                buffer[bytesRead] = '\0';
-
-                // Buscar el carácter de nueva línea
-                char* newlinePos = strchr(buffer, '\n');
-
-                if (newlinePos != nullptr) {
-                    // Encontrar la posición del carácter de nueva línea
-                    size_t newlineIndex = newlinePos - buffer;
-
-                    // Copiar la parte relevante de la cadena a un nuevo buffer
-                    char numberBuffer[32]; // Tamaño suficiente para almacenar un número
-                    strncpy_s(numberBuffer, sizeof(numberBuffer), buffer, newlineIndex);
-
-                    // Convertir la cadena a un entero
-                    try {
-                        int receivedValue = std::stoi(numberBuffer);
-                        std::cout << "Número recibido: " << receivedValue << std::endl;
-                        float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
-                        SetVolume(normalizedValue);
-                        SendVolumeOverSerial(hSerial, normalizedValue);
-                    }
-                    catch (const std::exception& e) {
-                        std::cerr << "Excepción al convertir a entero: " << e.what() << std::endl;
-                    }
-
-                    // Mover el resto de los datos al principio del buffer
-                    size_t remainingBytes = bytesRead - (newlineIndex + 1);
-                    memmove(buffer, buffer + newlineIndex + 1, remainingBytes);
-                    bytesRead = remainingBytes;
-                }
-                else {
-                    std::cout << "Error" << std::endl;
-                }
-            }
+    try {
+        serial::Serial mySerial(port, 9600);
+        if (mySerial.isOpen()) {
+            cout << "Port opened successfully" << endl;
+            cout << "Listening..." << endl;
         }
         else {
-            DWORD error = GetLastError();
-            if (error != ERROR_IO_PENDING) {
-                std::cerr << "Error al leer desde el puerto serie. Código de error: " << error << std::endl;
-                break;
+            cout << "Error opening port" << endl;
+            return -1;
+        }
+        while (true) {
+            try {
+                string line = mySerial.readline();
+                int receivedValue = std::stoi(line);
+                cout << "Read number: " << receivedValue << endl;
+                float normalizedValue = (receivedValue != 0) ? static_cast<float>(receivedValue) / 1024.0 : 0.0;
+                SetVolume(normalizedValue);
+                int volumeValue = static_cast<int>(normalizedValue * 100);
+                string volumeStr = std::to_string(volumeValue);
+                cout << "Sending volume percentage: " << volumeStr << " %" << endl;
+                cout << "____________________________" << endl;
+                mySerial.write(volumeStr + "\n");
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Cannot parse string to int: " << e.what() << std::endl;
             }
         }
     }
-
-    // Cerrar el puerto serie
-    CloseHandle(hSerial);
-
-    return 0;
+    catch (const std::exception& e) {
+        // Captura cualquier excepción derivada de std::exception
+        std::cerr << "Error: " << e.what() << std::endl;
+        return -1;
+    }
+	
+	return 0;
 }

@@ -125,10 +125,23 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Driver.cpp" />
+    <ClCompile Include="list_ports_linux.cc" />
+    <ClCompile Include="list_ports_osx.cc" />
+    <ClCompile Include="list_ports_win.cc" />
+    <ClCompile Include="serial.cc" />
+    <ClCompile Include="unix.cc" />
+    <ClCompile Include="win.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="serial.h" />
+    <ClInclude Include="unix.h" />
+    <ClInclude Include="v8stdint.h" />
+    <ClInclude Include="win.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

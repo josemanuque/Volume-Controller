@@ -29,7 +29,7 @@ void loop(){
       lcd.clear();
       lcd.print("Volume level is at:");
       lcd.setCursor(0, 1);
-      lcd.print(inputString);
+      lcd.print(inputString + " %");
     }
-    delay(100);
+    
 }

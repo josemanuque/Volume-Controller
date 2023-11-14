@@ -6,3 +6,7 @@
 
 # Ignorar el directorio Driver/Driver/x64
 Driver/Driver/x64/
+
+# Ignorar python
+
+**.py
